@@ -15,13 +15,17 @@ final class FlickrViewModel {
         case network(message: String)
         case empty
         case unknown(message: String)
-                                                                                                                                                          
+
         var isRetryable: Bool {
             switch self {
             case .network: return true
             case .empty, .unknown: return false
             }
         }
+    }
+    
+    private enum Constants {
+        static let debounceMilliseconds: UInt64 = 500
     }
     
     private(set) var items: [FlickrItem] = []
@@ -34,37 +38,33 @@ final class FlickrViewModel {
     private var flickrService: FlickrServiceProtocol?
     private var currentQuery: String = ""
     private var searchTask: Task<Void, Never>?
-                                                                                                                                                          
-    private enum Constants {
-        static let debounceMilliseconds: UInt64 = 500
-    }
-    
+
     func setup(flickrService: FlickrServiceProtocol) {
         self.flickrService = flickrService
     }
                                                                                                                                                     
     func search(for query: String) {
         searchTask?.cancel()
-                                                                                                                                                          
+
         let trimmedQuery = query.trimmingCharacters(in: .whitespaces)
         currentQuery = trimmedQuery
-                                                                                                                                                          
+
         guard !trimmedQuery.isEmpty else {
             items = []
             errorState = nil
             return
         }
-                                                                                                                                                          
+
         searchTask = Task {
             await performSearch(query: trimmedQuery, debounce: true)
         }
     }
-                                                                                                                                                          
+
     func refresh() async {
         guard !currentQuery.isEmpty else { return }
         await performSearch(query: currentQuery, debounce: false)
     }
-                                                                                                                                                          
+
     func retry() {
         guard !currentQuery.isEmpty else { return }
         searchTask = Task {
@@ -74,26 +74,29 @@ final class FlickrViewModel {
 
     private func performSearch(query: String, debounce: Bool) async {
         guard !isLoading else { return }
-                                                                                                                                                          
+
         isLoading = true
         errorState = nil
-                                                                                                                                                          
+
+        defer {
+            isLoading = false
+        }
+        
         if debounce {
             try? await Task.sleep(for: .milliseconds(Constants.debounceMilliseconds))
-                                                                                                                                                          
+
             guard !Task.isCancelled else {
-                isLoading = false
                 return
             }
         }
-                                                                                                                                                          
+
         do {
             guard let feed: FlickrFeed = try await flickrService?.searchPhotos(query: query) else {
                 throw NetworkError.invalidResponse
             }
-                                                                                                                                                          
+
             try Task.checkCancellation()
-                                                                                                                                                          
+
             if feed.items.isEmpty {
                 items = []
                 errorState = .empty
@@ -104,10 +107,8 @@ final class FlickrViewModel {
         } catch {
             handleSearchError(error)
         }
-                                                                                                                                                          
-        isLoading = false
     }
-                                                                                                                                                          
+
     private func handleSearchError(_ error: Error) {
         switch error {
         case is CancellationError:
