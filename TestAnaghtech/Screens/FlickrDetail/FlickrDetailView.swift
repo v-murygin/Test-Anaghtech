@@ -9,62 +9,56 @@ import SwiftUI
 
 struct FlickrDetailView: View {
     
-    @Environment(\.dismiss) private var dismiss
-    
     let item: FlickrItem
     
     var body: some View {
-        ScrollView {
+        ScrollView(showsIndicators: false) {
             VStack(alignment: .leading, spacing: 16) {
-                CachedImageView(url: item.media.m)
-                    .aspectRatio(contentMode: .fit)
-                    .frame(maxWidth: .infinity)
-                
-                VStack(alignment: .leading, spacing: 8) {
-                    if !item.title.isEmpty {
-                        Text(item.title)
-                            .font(.title)
-                    }
-                    
-                    
-                    if !item.cleanDescription.isEmpty {
-                        Text(item.cleanDescription)
-                            .font(.body)
-                    }
-                    
-                    Text("By \(item.cleanAuthor)")
-                        .font(.subheadline)
-                    
-                    Text("Published: \(formatDate(item.published))")
-                        .font(.caption)
-                    
-                    if let size = item.imageSize {
-                        Text("Size: \(size.width)x\(size.height)")
-                            .font(.caption)
-                    }
-                }
-                .padding()
+                header
+                content
             }
         }
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
+            ToolbarItem(placement: .primaryAction) {
                 ShareLink(item: item.link)
             }
         }
     }
     
-    private func formatDate(_ dateString: String) -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ssZ"
-        
-        guard let date = formatter.date(from: dateString) else {
-            return dateString
+    private var header: some View {
+        CachedImageView(url: item.media.m)
+            .aspectRatio(contentMode: .fit)
+            .frame(maxWidth: .infinity)
+            .accessibilityLabel(item.title.isEmpty ? "Photo by \(item.cleanAuthor)" : item.title)
+    }
+    
+    private var content: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            if !item.title.isEmpty {
+                Text(item.title)
+                    .font(.title)
+                    .accessibilityAddTraits(.isHeader)
+            }
+            
+            if !item.cleanDescription.isEmpty {
+                Text(item.cleanDescription)
+                    .font(.body)
+            }
+            
+            Text("By \(item.cleanAuthor)")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+            
+            Text("Published: \(item.published.formattedAsDisplayDate())")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            
+            if let size = item.imageSize {
+                Text("Size: \(size.width)x\(size.height)")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
         }
-        
-        formatter.dateStyle = .medium
-        formatter.timeStyle = .short
-        return formatter.string(from: date)
     }
 }
-
