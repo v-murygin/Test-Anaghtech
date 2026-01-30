@@ -9,8 +9,7 @@ import SwiftUI
 
 struct FlickrSearchView: View {
     
-    @Environment(\.networkService) private var networkService
-    
+    @Environment(\.flickrService) private var flickrService
     
     @State private var searchText = ""
     @State private var viewModel = FlickrViewModel()
@@ -23,51 +22,101 @@ struct FlickrSearchView: View {
     
     var body: some View {
         NavigationStack {
-            Group {
-                if viewModel.hasResults {
-                    SearchResultsGridView(items: viewModel.items, columns: columns)
-                } else if !searchText.isEmpty {
-                    emptyResultsView
-                } else {
-                    InitialStateView { selectedTags in
-                        searchText = selectedTags
+            content
+                .overlay {
+                    if viewModel.isLoading {
+                        loadingOverlayView
                     }
                 }
-            }
-            .overlay {
-                viewModel.isLoading ? loadingOverlayView : nil
-            }
-            .searchable(text: $searchText, prompt: "Search images (use comma for multiple tags)")
-            .navigationTitle("Flickr Search")
-            .onChange(of: searchText) { _, newValue in
-                Task {
-                    do {
-                        try await viewModel.search(for: newValue)
-                    }
-                    catch {
-                        viewModel.handleError(error)
+                .searchable(text: $searchText, prompt: "Search images")
+                .navigationTitle("Flickr Search")
+                .toolbar {
+                    if viewModel.hasResults {
+                        ToolbarItem(placement: .navigationBarTrailing) {
+                            Text("\(viewModel.itemCount) photos")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .accessibilityLabel("\(viewModel.itemCount) photos loaded")
+                        }
                     }
                 }
-            }
-            .task {
-                viewModel.setup(networkService: networkService)
-            }
-            .alert("Error", isPresented: $viewModel.showError) {
-                Button("OK") { viewModel.showError = false }
-                Button("Reset Search", role: .destructive) {
-                    searchText = ""
-                    viewModel.showError = false
+                .onChange(of: searchText) { _, newValue in
+                    viewModel.search(for: newValue)
                 }
-            } message: {
-                Text(viewModel.errorMessage ?? "Unknown error")
-            }
+                .task {
+                    viewModel.setup(flickrService: flickrService)
+                }
         }
     }
     
-    private var emptyResultsView: some View {
-        ContentUnavailableView("No Results",
+    private var content: some View {
+        Group {
+            if let errorState = viewModel.errorState {
+                errorView(for: errorState)
+            } else if viewModel.hasResults {
+                resultsView
+            } else if !searchText.isEmpty {
+                emptySearchView
+            } else {
+                InitialStateView { selectedTags in
+                    searchText = selectedTags
+                }
+            }
+        }
+    }
+
+    private var resultsView: some View {
+        SearchResultsGridView(items: viewModel.items, columns: columns)
+            .refreshable {
+                await viewModel.refresh()
+            }
+    }
+    
+    private var emptySearchView: some View {
+        ContentUnavailableView(
+            "No Results",
             systemImage: "magnifyingglass",
-            description: Text("Try searching for something else"))
+            description: Text("Try searching for something else")
+        )
+    }
+    
+    @ViewBuilder
+    private func errorView(for errorState: FlickrViewModel.ErrorState) -> some View {
+        switch errorState {
+        case .network(let message):
+            ContentUnavailableView {
+                Label("Connection Error", systemImage: "wifi.slash")
+            } description: {
+                Text(message)
+            } actions: {
+                Button {
+                    viewModel.retry()
+                } label: {
+                    Label("Try Again", systemImage: "arrow.clockwise")
+                }
+                .buttonStyle(.bordered)
+                .accessibilityHint("Double tap to retry the search")
+            }
+            
+        case .empty:
+            ContentUnavailableView(
+                "No Results",
+                systemImage: "photo.on.rectangle.angled",
+                description: Text("No photos found for \"\(searchText)\".\nTry different keywords.")
+            )
+            
+        case .unknown(let message):
+            ContentUnavailableView {
+                Label("Something Went Wrong", systemImage: "exclamationmark.triangle")
+            } description: {
+                Text(message)
+            } actions: {
+                Button("Clear Search") {
+                    searchText = ""
+                }
+                .buttonStyle(.bordered)
+            }
+        }
     }
     
     private var loadingOverlayView: some View {
@@ -75,6 +124,7 @@ struct FlickrSearchView: View {
             .scaleEffect(1.5)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(.ultraThinMaterial)
+            .accessibilityLabel("Loading photos")
     }
 }
 

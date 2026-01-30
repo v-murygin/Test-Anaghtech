@@ -7,37 +7,62 @@
 
 
 import SwiftUI
-import WebKit
 
-struct AttributedText: UIViewRepresentable {
-    private let attributedString: NSAttributedString
 
-    init(_ attributedString: NSAttributedString) {
-        self.attributedString = attributedString
-    }
+struct HTMLText: View {
 
-    func makeUIView(context: Context) -> UITextView {
-    
-        let uiTextView = UITextView()
+    let html: String
 
-        uiTextView.backgroundColor = .clear
-
-        uiTextView.isEditable = false
-
-        uiTextView.isScrollEnabled = false
-        uiTextView.setContentHuggingPriority(.defaultLow, for: .vertical)
-        uiTextView.setContentHuggingPriority(.defaultLow, for: .horizontal)
-        uiTextView.setContentCompressionResistancePriority(.required, for: .vertical)
-        uiTextView.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
-
-        return uiTextView
-    }
-
-    func updateUIView(_ uiTextView: UITextView, context: Context) {
-
-        uiTextView.attributedText = attributedString
+    var body: some View {
+        GeometryReader { geometry in
+            HTMLTextView(html: html, containerWidth: geometry.size.width)
+        }
     }
 }
 
+private struct HTMLTextView: UIViewRepresentable {
 
+    let html: String
+    let containerWidth: CGFloat
 
+    func makeUIView(context: Context) -> UITextView {
+        let textView = UITextView()
+
+        textView.backgroundColor = .clear
+        textView.isEditable = false
+        textView.isSelectable = true
+        textView.isScrollEnabled = false
+
+        textView.textContainerInset = .zero
+        textView.textContainer.lineFragmentPadding = 0
+        textView.textContainer.widthTracksTextView = true
+        textView.textContainer.lineBreakMode = .byWordWrapping
+
+        textView.setContentHuggingPriority(.required, for: .vertical)
+        textView.setContentCompressionResistancePriority(.required, for: .vertical)
+
+        return textView
+    }
+
+    func updateUIView(_ uiView: UITextView, context: Context) {
+        if context.coordinator.lastHtml != html {
+            context.coordinator.lastHtml = html
+            uiView.attributedText = NSAttributedString.html(withBody: html)
+        }
+
+        uiView.frame.size.width = containerWidth
+
+       
+        let size = uiView.sizeThatFits(CGSize(width: containerWidth, height: .greatestFiniteMagnitude))
+        
+        uiView.frame.size.height = size.height
+    }
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator()
+    }
+
+    final class Coordinator {
+        var lastHtml: String?
+    }
+}

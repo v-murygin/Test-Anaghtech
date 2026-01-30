@@ -9,12 +9,12 @@ import SwiftUI
 
 struct CachedImageView: View {
     
-    @Environment(\.networkService) private var networkService
+    @Environment(\.imageLoader) private var imageLoader
     
     @State private var image: UIImage?
     @State private var isLoading = false
     
-    let url: String
+    private let url: String
     
     init(url: String) {
         self.url = url
@@ -30,20 +30,24 @@ struct CachedImageView: View {
             }
         }
         .task(id: url) {
-            guard !isLoading else { return }
-            isLoading = true
-            defer { isLoading = false }
-            
-            do {
-                let newimage = try await networkService.loadImage(from: url)
-                await MainActor.run { image = newimage }
-            } catch {
-                switch error {
-                case let urlError as URLError where urlError.code == .cancelled:
-                    return
-                default:
-                    print("❌ Failed to load image: \(error.localizedDescription)")
-                }
+            await loadImage()
+        }
+    }
+    
+    private func loadImage() async {
+        guard !isLoading else { return }
+        isLoading = true
+        defer { isLoading = false }
+        
+        do {
+            let newImage = try await imageLoader.loadImage(from: url)
+            self.image = newImage
+        } catch {
+            switch error {
+            case let urlError as URLError where urlError.code == .cancelled:
+                return
+            default:
+                print("❌ Failed to load image: \(error.localizedDescription)")
             }
         }
     }
