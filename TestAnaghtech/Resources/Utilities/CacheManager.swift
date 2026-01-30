@@ -8,7 +8,9 @@
 import SwiftUI
 
 actor CacheManager {
+    
     static let shared = CacheManager()
+    
     private var cache: [String: UIImage] = [:]
     
     func insert(_ image: UIImage, for key: String) {
