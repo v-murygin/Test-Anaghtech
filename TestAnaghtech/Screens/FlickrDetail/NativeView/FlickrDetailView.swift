@@ -17,6 +17,7 @@ struct FlickrDetailView: View {
                 header
                 content
             }
+            .padding()
         }
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {

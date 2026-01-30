@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct FlickrItem: Codable, Identifiable {
+struct FlickrItem: Codable, Identifiable, Equatable {
     
     let title: String
     let link: String
@@ -18,7 +18,7 @@ struct FlickrItem: Codable, Identifiable {
     
     var id: String { link }
     
-    struct Media: Codable {
+    struct Media: Codable, Equatable {
         let m: String
         
         enum CodingKeys: String, CodingKey {

@@ -8,7 +8,6 @@
 
 import SwiftUI
 
-
 struct HTMLText: View {
 
     let html: String
