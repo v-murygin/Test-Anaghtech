@@ -8,6 +8,7 @@
 import SwiftUI
 
 extension UIColor {
+    
     var hex: String {
         var red: CGFloat = 0
         var green: CGFloat = 0
@@ -24,4 +25,5 @@ extension UIColor {
             lroundf(Float(alpha * 255))
         )
     }
+    
 }
