@@ -7,8 +7,8 @@
 
 import Foundation
 
-// NetworkError.swift
-enum NetworkError: Error {
+enum NetworkError: LocalizedError, Equatable {
+    
     case invalidURL
     case invalidResponse
     case decodingError
@@ -16,7 +16,7 @@ enum NetworkError: Error {
     case unknown
     case invalidImageData
     
-    var description: String {
+    var errorDescription: String? {
         switch self {
         case .invalidURL:
             return "Invalid URL"
@@ -27,9 +27,41 @@ enum NetworkError: Error {
         case .serverError(let code):
             return "Server error: \(code)"
         case .invalidImageData:
-            return "Invalid data received from server"
+            return "Invalid image data received"
         case .unknown:
-            return "Unknown error occurred"
+            return "An unknown error occurred"
+        }
+    }
+    
+    var failureReason: String? {
+        switch self {
+        case .invalidURL:
+            return "The URL provided was malformed"
+        case .invalidResponse:
+            return "The server returned an unexpected response"
+        case .decodingError:
+            return "The data format was not recognized"
+        case .serverError(let code):
+            return "HTTP status code: \(code)"
+        case .invalidImageData:
+            return "Could not create image from received data"
+        case .unknown:
+            return nil
+        }
+    }
+    
+    var recoverySuggestion: String? {
+        switch self {
+        case .invalidURL:
+            return "Please check the URL format"
+        case .invalidResponse, .serverError:
+            return "Please try again later"
+        case .decodingError:
+            return "The API response format may have changed"
+        case .invalidImageData:
+            return "The image may be corrupted or in an unsupported format"
+        case .unknown:
+            return "Please try again"
         }
     }
 }
