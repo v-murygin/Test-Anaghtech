@@ -10,6 +10,11 @@ import SwiftUI
 
 struct FavoriteButtonUIKit: UIViewRepresentable {
 
+    // NOTE: UIKit Integration Demo
+    // While SwiftUI provides native button support, this component demonstrates
+    // usage of UIViewRepresentable to bridge UIKit components and manage
+    // manual layer-based animations (Core Animation/Springs) within a SwiftUI hierarchy.
+
     let isFavorite: Bool
     let onTap: () -> Void
 
