@@ -40,12 +40,12 @@ struct FlickrSearchView: View {
                         }
                     }
                 }
-                .onChange(of: searchText) { _, newValue in
-                    viewModel.search(for: newValue)
-                }
-                .task {
-                    viewModel.setup(flickrService: flickrService)
-                }
+//                .onChange(of: searchText) { _, newValue in
+//                    viewModel.search(for: newValue)
+//                }
+//                .task {
+//                    viewModel.setup(flickrService: flickrService)
+//                }
         }
     }
     
